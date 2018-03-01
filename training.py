@@ -2,6 +2,8 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import random
+import cv2
+import numpy as np
 
 # Local Imports
 import model
@@ -51,11 +53,14 @@ if __name__ == "__main__":
         else:
             print("Could not find old network weights")
 
+        # Increase Global Step Count
+        global_step += 1
+                
         # Evaluate the global step count
         step = global_step.eval(session=sess)
              
         for epoch_i in range(1,NUM_EPOCH+1):
-            for batch_images_color_i, batch_images_bw_i, batch_classes_i in input_data.get_batches(BATCH_SIZE):
+            for batch_images_color_i, batch_images_bw_i, batch_classes_i in input_data.get_batches_for_train(BATCH_SIZE):
 
                 # Run the Tensorflow Training operation
                 sess.run(train_op, feed_dict={batch_input_images: batch_images_bw_i,
@@ -64,7 +69,7 @@ if __name__ == "__main__":
                                               global_step: step})
 
                 # Evaluate, Print and Save the results at regular intervals of time
-                if step%50 == 0:
+                if (step-1)%50 == 0:
                     loss_val = total_loss.eval(session=sess, feed_dict={batch_input_images: batch_images_bw,
                                                                         batch_images_color: batch_images_color_i,
                                                                         batch_classes: batch_classes_i})
@@ -79,7 +84,11 @@ if __name__ == "__main__":
 
                 # Increase Global Step Count
                 global_step += 1
-                
+
+
+def test_model():
+    return
+
 def save_image_results(filename, input_images, output_images, real_images, num_images=1):
     """
     Saves the result images of the training. One image will have num_images rows and 3 columns
@@ -102,17 +111,17 @@ def save_image_results(filename, input_images, output_images, real_images, num_i
     plot_i = 1
     for i in indices:
         fig.add_subplot(nrows,ncols, plot_i).set_title('Input')
-        plt.imshow(input_images[i])
+        plt.imshow(cv2.cvtColor(input_images[i], cv2.COLOR_LAB2BGR),'gray')
         plt.axis('off')
         plot_i += 1
 
         fig.add_subplot(nrows,ncols, plot_i).set_title('Output')
-        plt.imshow(output_images[i])
+        plt.imshow(cv2.cvtColor(output_images[i], cv2.COLOR_LAB2BGR),'rgb')
         plt.axis('off')
         plot_i += 1
 
         fig.add_subplot(n_rows,ncols, plot_i).set_title('Truth')
-        plt.imshow(real_images[i])
+        plt.imshow(cv2.cvtColor(real_images[i], cv2.COLOR_LAB2BGR), 'rgb')
         plt.axis('off')
         plot_i += 1
 
