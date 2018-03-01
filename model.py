@@ -277,18 +277,6 @@ def network_model(images):
                                            kernel_initializer=tf.truncated_normal_initializer(stddev=0.04),
                                            bias_initializer=tf.constant_initializer(0.1),
                                            name=scope.name)
-                                           
-        '''
-
-        reshape = tf.reshape(global_level_conv4, [BATCH_SIZE, -1])   #512*7*7 is from main paper diagram
-        dim = reshape.get_shape()[1].value
-        weights = _variable_with_weight_decay('weights',
-                                              shape=[dim, 1024], 
-                                              stddev=0.04,
-                                              wd=0.004)
-        biases = _variable_on_cpu('biases', [1024], tf.constant_initializer(0.1))
-        global_level_FC1 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
-        '''
         _activation_summary(global_level_FC1)
     
     # global_level_FC2
@@ -334,19 +322,11 @@ def network_model(images):
     
     # fusion_layer
     with tf.variable_scope('fusion_layer') as scope:
-        print('global level Fc3 = %s' % global_level_FC3)
-        print('mid level conv2 : %s' % mid_level_conv2)
+        
         mid_level_conv2_reshaped = tf.reshape(mid_level_conv2,[-1, 28*28,256])
-        print('mid_level_conv2_reshaped : %s' % mid_level_conv2_reshaped)
         mid_level_conv2_reshaped = tf.unstack(mid_level_conv2_reshaped,axis=1)
-        print('mid_level_conv2_reshaped and unstacked : %d' % len(mid_level_conv2_reshaped))
-        print('mid_level_conv2_reshaped and unstacked[0] : %s' % mid_level_conv2_reshaped[0])
         fusion_level = [tf.concat([see_mid,global_level_FC3],axis=1) for see_mid in mid_level_conv2_reshaped]
-        print('After concatination of 2 layers')
-        print('fusion_level length : %d ' % len(fusion_level))
-        print('each fusion_level has : %s' % fusion_level[0])
         fusion_level = tf.stack(fusion_level,axis=1)
-        print('fusion_level after stack : %s' % fusion_level)
         fusion_level = tf.reshape(fusion_level,[-1,28,28,512])
         
         kernel = _variable_with_weight_decay('weights',
@@ -425,16 +405,16 @@ def network_model(images):
         output_layer = tf.nn.sigmoid(pre_activation, name=scope.name)
         _activation_summary(output_layer)
 
-
+    # generating colored image
     with tf.variable_scope('final_colored_output') as scope:
         output_layer_upsampled = tf.image.resize_images(images=output_layer,
                                                         size=tf.constant(value=[224,224], dtype=tf.int32),
                                                         method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
         print('output_layer_upsampled : %s' % output_layer_upsampled)
-        chrominance = (output_layer_upsampled*255)-127 # a,b value = range(-127,+128)
-        luminance = images[:,:,:,0:1] # L value = range(0,100)
+        chrominance = (output_layer_upsampled*255) # a,b value = range(0,255)
+        luminance = images[:,:,:,0:1] # L value = range(0,255)
 
-        final_colored_images = tf.concat([luminance, chrominance],axis=3) # in CL*a*b* format
+        final_colored_images = tf.concat([luminance, chrominance],axis=3) # in L*a*b* format
         print('final_colored_images : %s' %final_colored_images)
         
     return final_colored_images, classification_layer_2
