@@ -4,10 +4,10 @@ import re
 
 
 
-BATCH_SIZE = 128
-IMAGE_SIZE = [244,244]
-NUM_CLASSES = 10
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 50000
+BATCH_SIZE = 32
+IMAGE_SIZE = [224,224]
+NUM_CLASSES = 205
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 2400000
 NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
@@ -410,12 +410,10 @@ def network_model(images):
         output_layer_upsampled = tf.image.resize_images(images=output_layer,
                                                         size=tf.constant(value=[224,224], dtype=tf.int32),
                                                         method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-        print('output_layer_upsampled : %s' % output_layer_upsampled)
         chrominance = (output_layer_upsampled*255) # a,b value = range(0,255)
         luminance = images[:,:,:,0:1] # L value = range(0,255)
 
         final_colored_images = tf.concat([luminance, chrominance],axis=3) # in L*a*b* format
-        print('final_colored_images : %s' %final_colored_images)
         
     return final_colored_images, classification_layer_2
 
