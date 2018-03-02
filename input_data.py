@@ -1,6 +1,7 @@
 import os
 import cv2
 import random
+import numpy as np
 
 DATA_DIR = 'data/imagesPlaces205_resize/'
 INDEX_FILE_TRAIN = 'data/Train_places205_Random_Suffle.csv'
@@ -38,17 +39,18 @@ def get_image_for_train(image_path):
     # Convert to Pencil Sketch
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     img_blur = cv2.GaussianBlur(255-image_gray, (21,21), 0, 0)
-    img_blend = cv2.divide(img_gray, 255-img_blur, scale=256)
+    img_blend = cv2.divide(image_gray, 255-img_blur, scale=256)
     img_blend = cv2.multiply(img_blend, 255-img_blur, scale=1./256)
     pencil_sketch = clahe.apply(img_blend)
 
+    # Converting the pencil_sketch into dimentions [IMAGE_HEIGHT, IMAGE_WIDTH, COLOR_CHANNELS=1]
+    pencil_sketch = np.expand_dims(pencil_sketch, axis=2)
+    
     # Convert to L*a*b* mode
-    lab_img = cv2.cvtColor(pencil_sketch, cv2.COLOR_GRAY2BGR)
-    lab_img_pencil = cv2.cvtColor(lab_img, cv2.COLOR_BGR2LAB)
     lab_img_color = cv2.cvtColor(distorted_image_color, cv2.COLOR_BGR2LAB)
     
     
-    return lab_img_color, lab_img_pencil
+    return lab_img_color, pencil_sketch
 
 
 def get_batches_for_train(batch_size):
@@ -74,7 +76,7 @@ def get_batches_for_train(batch_size):
             img_color, img_pencil = get_image_for_train(DATA_DIR + filename)
             images_color.append(img_color)
             images_pencil.append(img_pencil)
-            labels.append(label)
+            labels.append([label])
             i+=1
             if i>batch_size:
                 i=1
@@ -110,13 +112,14 @@ def get_image_for_test(image_path):
     img_blend = cv2.multiply(img_blend, 255-img_blur, scale=1./256)
     pencil_sketch = clahe.apply(img_blend)
 
+    # Converting the pencil_sketch into dimentions [IMAGE_HEIGHT, IMAGE_WIDTH, COLOR_CHANNELS=1]
+    pencil_sketch = np.expand_dims(pencil_sketch, axis=2)
+    
     # Convert to L*a*b* mode
-    lab_img = cv2.cvtColor(pencil_sketch, cv2.COLOR_GRAY2BGR)
-    lab_img_pencil = cv2.cvtColor(lab_img, cv2.COLOR_BGR2LAB)
     lab_img_color = cv2.cvtColor(distorted_image_color, cv2.COLOR_BGR2LAB)
     
     
-    return lab_img_color, lab_img_pencil
+    return lab_img_color, pencil_sketch
 
 
 def get_batches_for_test(batch_size):
@@ -142,7 +145,7 @@ def get_batches_for_test(batch_size):
             img_color, img_pencil = get_image_for_test(DATA_DIR + filename)
             images_color.append(img_color)
             images_pencil.append(img_pencil)
-            labels.append(label)
+            labels.append([label])
             i+=1
             if i>batch_size:
                 i=1
@@ -169,8 +172,4 @@ def get_real_pencil_sketch(image_path):
     clahe = cv2.createCLAHE(clipLimit=10.0, tileGridSize=(1,1))
     pencil_sketch = clahe.apply(resized_image_gray)
 
-    # Converting to L*a*b* color mode
-    lab_image = cv2.cvtColor(pencil_sketch, cv2.COLOR_GRAY2BGR)
-    lab_image = cv2.cvtColor(lab_image, cv2.COLOR_BGR2LAB)
-
-    return lab_image
+    return pencil_sketch
